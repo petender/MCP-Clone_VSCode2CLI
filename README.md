@@ -28,7 +28,11 @@ Think of MCP servers as “capability plugins” for your AI agent:
 
 ## What this guide solves
 
-You have a VS Code MCP config (`mcp.json`) and want the same servers in Copilot CLI (`mcp-config.json`).
+You can now sync MCP servers in either direction:
+
+- VS Code -> Copilot CLI
+- Copilot CLI -> VS Code
+- Keep both files in sync
 
 ## File locations
 
@@ -200,49 +204,80 @@ Use either:
 - [convert-mcp-config.ps1](convert-mcp-config.ps1) (PowerShell: Windows/macOS/Linux with `pwsh`)
 - [convert-mcp-config.sh](convert-mcp-config.sh) (Bash: macOS/Linux, requires `python3`)
 
-### What the script automatically handles
+### What the scripts automatically handle
 
-- `servers` -> `mcpServers`
-- drops VS Code-only `inputs`
-- converts `${input:name}` to `$NAME`
-- converts `${env:VAR}` to `$VAR`
-- adds/merges `env` block mappings (`"VAR": "$VAR"`)
-- renames invalid server IDs (e.g. containing `/`) to safe IDs
+- supports interactive direction prompt (or explicit `-Direction` / `--direction`)
+- preserves existing destination config by merging instead of overwriting
+- on name conflicts with different content, keeps both by appending suffixes (`_2`, `_3`, ...)
+- skips exact duplicates as unchanged
+- converts between `servers` and `mcpServers` based on target file
+- drops VS Code-only `inputs` on generated output
+- converts `${input:name}` <-> environment variable references
+- converts `${env:VAR}` <-> `$VAR`
+- adds/merges `env` mappings as needed
+- normalizes Copilot server IDs to allowed characters when targeting Copilot
 
 ### Run it with PowerShell (`convert-mcp-config.ps1`)
 
-The script now supports cross-platform defaults using your home profile path.
+The script supports cross-platform defaults and interactive direction selection.
 
 #### Easiest mode (recommended)
 
-If your source file is `./mcp.json` (or `./.vscode/mcp.json`), just run:
+Run and choose direction from the prompt:
 
 ```powershell
 pwsh -ExecutionPolicy Bypass -File ./convert-mcp-config.ps1
 ```
 
-This writes to `~/.copilot/mcp-config.json` automatically.
+By default it auto-detects `./mcp.json` (or `./.vscode/mcp.json`) and `~/.copilot/mcp-config.json`, then applies the direction you select.
 
-#### Explicit input, default output
-
-```powershell
-pwsh -ExecutionPolicy Bypass -File ./convert-mcp-config.ps1 \
-  -InputPath ./mcp.json
-```
-
-#### Explicit input and output
+#### Explicit direction (no prompt)
 
 ```powershell
 pwsh -ExecutionPolicy Bypass -File ./convert-mcp-config.ps1 \
-  -InputPath ./mcp.json \
-  -OutputPath ~/.copilot/mcp-config.json
+  -Direction VsCodeToCopilot
 ```
+
+Valid direction values:
+
+- `VsCodeToCopilot`
+- `CopilotToVsCode`
+- `KeepInSync`
+
+#### Explicit VS Code and Copilot paths
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File ./convert-mcp-config.ps1 \
+  -Direction VsCodeToCopilot \
+  -VsCodePath ./mcp.json \
+  -CopilotPath ~/.copilot/mcp-config.json
+```
+
+#### Reverse sync (Copilot -> VS Code)
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File ./convert-mcp-config.ps1 \
+  -Direction CopilotToVsCode \
+  -CopilotPath ~/.copilot/mcp-config.json \
+  -VsCodePath ./mcp.json
+```
+
+#### Keep both in sync
+
+```powershell
+pwsh -ExecutionPolicy Bypass -File ./convert-mcp-config.ps1 \
+  -Direction KeepInSync \
+  -VsCodePath ./mcp.json \
+  -CopilotPath ~/.copilot/mcp-config.json
+```
+
+> Backward compatibility: `-InputPath` and `-OutputPath` are still accepted and mapped by direction.
 
 #### If you need a custom home path
 
 ```powershell
 pwsh -ExecutionPolicy Bypass -File ./convert-mcp-config.ps1 \
-  -InputPath ./mcp.json \
+  -Direction VsCodeToCopilot \
   -UserHome /home/<user>
 ```
 
@@ -260,23 +295,52 @@ chmod +x ./convert-mcp-config.sh
 ./convert-mcp-config.sh
 ```
 
-#### Explicit input, default output
+#### Explicit direction (no prompt)
 
 ```bash
-./convert-mcp-config.sh --input ./mcp.json
+./convert-mcp-config.sh --direction vscode-to-copilot
 ```
 
-#### Explicit input and output
+Valid direction values:
+
+- `vscode-to-copilot`
+- `copilot-to-vscode`
+- `keep-in-sync`
+
+#### Explicit VS Code and Copilot paths
 
 ```bash
-./convert-mcp-config.sh --input ./mcp.json --output ~/.copilot/mcp-config.json
+./convert-mcp-config.sh \
+  --direction vscode-to-copilot \
+  --vscode-path ./mcp.json \
+  --copilot-path ~/.copilot/mcp-config.json
+```
+
+#### Reverse sync (Copilot -> VS Code)
+
+```bash
+./convert-mcp-config.sh \
+  --direction copilot-to-vscode \
+  --copilot-path ~/.copilot/mcp-config.json \
+  --vscode-path ./mcp.json
+```
+
+#### Keep both in sync
+
+```bash
+./convert-mcp-config.sh \
+  --direction keep-in-sync \
+  --vscode-path ./mcp.json \
+  --copilot-path ~/.copilot/mcp-config.json
 ```
 
 #### If you need a custom home path
 
 ```bash
-./convert-mcp-config.sh --input ./mcp.json --user-home /home/<user>
+./convert-mcp-config.sh --direction vscode-to-copilot --user-home /home/<user>
 ```
+
+> Backward compatibility: `--input` and `--output` are still accepted and mapped by direction.
 
 #### Prerequisites for Bash version
 
@@ -363,6 +427,6 @@ This guide is useful for:
 
 ## Summary
 
-You can reuse most VS Code MCP configuration in Copilot CLI. The biggest differences are server ID naming rules, top-level key name, and handling of `${input:...}`/`${env:...}` placeholders.
+You can now safely sync MCP config both ways between VS Code and Copilot CLI without losing existing destination entries. The scripts merge configs, preserve duplicates, and only rename on real conflicts.
 
-For the best experience, use [convert-mcp-config.ps1](convert-mcp-config.ps1), then run `/mcp reload` and `/mcp show` in Copilot CLI.
+For the best experience, run [convert-mcp-config.ps1](convert-mcp-config.ps1) or [convert-mcp-config.sh](convert-mcp-config.sh), then run `/mcp reload` and `/mcp show` in Copilot CLI.

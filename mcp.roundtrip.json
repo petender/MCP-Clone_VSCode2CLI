@@ -1,0 +1,75 @@
+{
+  "servers": {
+    "pdt_mcp_learn_docs": {
+      "url": "https://learn.microsoft.com/api/mcp",
+      "type": "http"
+    },
+    "io_github_github_github-mcp-server": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN=${env:GITHUB_PERSONAL_ACCESS_TOKEN}",
+        "ghcr.io/github/github-mcp-server:0.28.1",
+        "stdio"
+      ],
+      "gallery": "https://api.mcp.github.com",
+      "version": "0.28.1",
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "microsoft_playwright-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--browser",
+        "msedge"
+      ],
+      "gallery": "https://api.mcp.github.com",
+      "version": "0.0.1-seed"
+    },
+    "microsoft_markitdown": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "markitdown-mcp==0.0.1a4"
+      ],
+      "gallery": "https://api.mcp.github.com",
+      "version": "1.0.0"
+    },
+    "ado": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@azure-devops/mcp",
+        "${env:ADO_ORG}"
+      ],
+      "env": {
+        "ADO_ORG": "${env:ADO_ORG}"
+      }
+    },
+    "microsoft_azure-devops-mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@azure-devops/mcp@latest",
+        "${env:ADO_ORG}",
+        "-d",
+        "${env:ADO_DOMAIN}"
+      ],
+      "gallery": "https://api.mcp.github.com",
+      "version": "1.0.0",
+      "env": {
+        "ADO_ORG": "${env:ADO_ORG}",
+        "ADO_DOMAIN": "${env:ADO_DOMAIN}"
+      }
+    }
+  }
+}
